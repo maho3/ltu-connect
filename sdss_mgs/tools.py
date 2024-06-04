@@ -99,6 +99,7 @@ def rotate_to_z(rdz, cosmo):
         rot (Rotation): Rotation object which rotates the sightline to z-axis.
         irot (Rotation): Inverse rotation object.
     """
+    rdz = np.asarray(rdz)
 
     # calculate comoving vector
     xyz = sky_to_xyz(rdz, cosmo)
@@ -128,3 +129,72 @@ def rotate_to_z(rdz, cosmo):
     irot = rot.inv()
 
     return rot, irot
+
+
+# Everything below is hardcoded, from pre-computation
+
+def get_cuboid_lattice_vectors():
+    """Returns the lattice vectors for a cuboid which fits any quadrant."""
+    u1 = [-1, -1, -1]
+    u2 = [-1, -1, 0]
+    u3 = [-1, 0, -1]
+    return u1, u2, u3
+
+
+def get_median_rdz(i):
+    """Returns the median ra, dec, z for each quadrant.
+
+    Args:
+        i (int): Quadrant index (0, 1, 2, 3).
+
+    Returns:
+        median_rdz (array): Median ra, dec, z for the quadrant.
+    """
+
+    precomputed_medians = [
+        [158.74303878318312, 17.031270102890435, 0.026811392977833748],
+        [153.8592001343185, 44.158932963996975, 0.026938676834106445],
+        [216.71722613494188, 16.329543211502916, 0.027733768336474895],
+        [222.9051448119211, 40.377727202747, 0.02919937949627638]
+    ]
+    return np.array(precomputed_medians[i])
+
+
+def get_mean_xyz(i):
+    """Returns the mean comoving position for each quadrant.
+
+    Args:
+        i (int): Quadrant index (0, 1, 2, 3).
+
+    Returns:
+        mean_xyz (array): Mean x, y, z comoving position for the quadrant.
+    """
+
+    precomputed_means = [
+        [-7.423230881631724, -1.7948550618949621, 63.590013506439035],
+        [-1.3064032063107227, 9.825968802370923, 63.63458562404868],
+        [5.699150317635436, -0.32144799152813697, 63.56326396869353],
+        [0.30577017327591705, 13.15838995467428, 63.762795256487166]
+    ]
+    return np.array(precomputed_means[i])
+
+
+def label_quadrants(ra, dec):
+    """Labels each ra, dec pair with a quadrant index.
+
+    Args:
+        ra (array): Array of ra values.
+        dec (array): Array of dec values.
+
+    Returns:
+        labels (array): Array of quadrant labels.
+    """
+    ramid = 187
+    decmid = 30
+
+    labels = np.zeros(ra.shape, dtype=int)
+    labels[(ra < ramid) & (dec < decmid)] = 0
+    labels[(ra < ramid) & (dec > decmid)] = 1
+    labels[(ra > ramid) & (dec < decmid)] = 2
+    labels[(ra > ramid) & (dec > decmid)] = 3
+    return labels
