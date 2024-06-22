@@ -5,6 +5,7 @@ from astropy.constants import c
 from astropy.cosmology import FlatLambdaCDM
 from scipy.interpolate import interp1d
 from scipy.spatial.transform import Rotation as R
+from copy import deepcopy
 
 
 # cosmo functions
@@ -23,6 +24,45 @@ def cosmo_to_astropy(params):
     except TypeError:
         return params
     return FlatLambdaCDM(H0=params[2]*100, Om0=params[0], Ob0=params[1])
+
+
+def random_rotate_translate(xyz, L, vel=None, seed=0):
+    """Randomly rotate and translate a cube of points.
+
+    Rotations are fixed to [0, 90, 180, 270] degrees on each axis,
+    to satisfy periodic boundary conditions.
+
+    Args:
+    - xyz (np.ndarray): (N, 3) array of positions in the cube.
+    - L (float): side length of the cube.
+    - vel (np.ndarray, optional): (N, 3) array of velocities. 
+    - seed (int): random seed for reproducibility. If 0, no transformation
+        is applied.
+    """
+    assert np.all((xyz >= 0) & (xyz <= L)), "xyz must be in [0, L]"
+    xyz, vel = map(deepcopy, [xyz, vel])
+
+    if seed == 0:
+        offset = np.zeros(3)
+        rotation = R.identity()
+    else:
+        np.random.seed(seed)
+        offset = np.random.rand(3)*L
+        rotation = R.from_euler(
+            'xyz', np.random.choice([0, 90, 180, 270], 3),
+            degrees=True)
+
+    # Rotate
+    xyz -= L/2
+    xyz = rotation.apply(xyz)
+    xyz += L/2
+    vel = rotation.apply(vel) if vel is not None else None
+
+    # Translate
+    xyz += offset
+    xyz %= L
+
+    return xyz, vel
 
 
 def xyz_to_sky(pos, vel, cosmo):
