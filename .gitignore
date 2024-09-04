@@ -163,3 +163,4 @@ cython_debug/
 # Custom
 MGS
 camels_data
+tmp_lss_geometry.ply
